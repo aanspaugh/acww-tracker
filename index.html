@@ -65,6 +65,27 @@ body {
   cursor: pointer; font-family: inherit;
 }
 .now-btn:active { background: rgba(255,255,255,0.3); }
+.catchable-btn {
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.3);
+  color: white; border-radius: 6px;
+  padding: 4px 9px; font-size: 11px;
+  cursor: pointer; font-family: inherit; white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
+}
+.catchable-btn.active {
+  background: var(--green-mid); border-color: var(--green-mid);
+  box-shadow: 0 0 0 2px rgba(90,158,90,0.45);
+}
+.catchable-btn:active { opacity: 0.85; }
+.export-btn {
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.3);
+  color: white; border-radius: 6px;
+  padding: 4px 9px; font-size: 11px;
+  cursor: pointer; font-family: inherit; white-space: nowrap;
+}
+.export-btn:active { background: rgba(255,255,255,0.3); }
 .museum-stat {
   margin-left: auto; font-size: 11px;
   opacity: 0.85; white-space: nowrap;
@@ -286,6 +307,8 @@ thead th.sort-active { background: var(--tan-dark); color: var(--green-dark); }
     <button class="now-btn" id="nowBtn">Now</button>
     <label style="margin-left:4px">Search</label>
     <input type="search" class="search-input" id="search-input" placeholder="Filter by name…" autocomplete="off">
+    <button class="catchable-btn" id="catchableNowBtn">🟢 Catchable Now</button>
+    <button class="export-btn" id="exportBtn">⬇ Export</button>
     <div class="museum-stat" id="museumStat"></div>
   </div>
 </header>
@@ -654,6 +677,7 @@ const MONTHS = ["J","F","M","A","M","J","J","A","S","O","N","D"];
 let state = { bugs:{}, fish:{}, fossils:{} };
 let firebaseReady = false;
 let activeTab = 'bugs';
+let nowMode = false;
 const searchTerms = { bugs: '', fish: '', fossils: '' };
 
 /* ── Sort state ───────────────────────────────────── */
@@ -887,6 +911,7 @@ function renderBugs() {
     const availMonth  = isAvailableMonth(b);
     const availNow    = isAvailableNow(b);
 
+    if (nowMode && (!isAvailableNow(b) || s.donated)) return;
     if (hideUnavail && !availMonth) return;
     if (hideD && s.donated) return;
     visible++;
@@ -986,6 +1011,7 @@ function renderFish() {
     const availMonth = isAvailableMonth(f);
     const availNow   = isAvailableNow(f);
 
+    if (nowMode && (!isAvailableNow(f) || s.donated)) return;
     if (hideUnavail && !availMonth) return;
     if (hideD && s.donated) return;
     visible++;
@@ -1185,6 +1211,26 @@ document.getElementById('nowBtn').addEventListener('click', () => { setNow(); re
 document.getElementById('search-input').addEventListener('input', () => {
   searchTerms[activeTab] = document.getElementById('search-input').value.trim().toLowerCase();
   rerender();
+});
+
+/* ── Catchable Now toggle ─────────────────────── */
+document.getElementById('catchableNowBtn').addEventListener('click', () => {
+  nowMode = !nowMode;
+  document.getElementById('catchableNowBtn').classList.toggle('active', nowMode);
+  renderBugs(); renderFish();
+});
+
+/* ── Export JSON backup ───────────────────────── */
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  const dateStr = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+  const payload = JSON.stringify({ exported: now.toISOString(), state }, null, 2);
+  const blob = new Blob([payload], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = `acww-backup-${dateStr}.json`;
+  a.click(); URL.revokeObjectURL(url);
 });
 
 /* ── Sort header clicks ───────────────────────── */
