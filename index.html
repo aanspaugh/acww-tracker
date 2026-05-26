@@ -175,6 +175,24 @@ td { padding: 7px 8px; vertical-align: middle; }
 .months-cell { font-size: 10px; color: var(--text-muted); letter-spacing: 0.05em; }
 .month-on  { color: var(--green-dark); font-weight: 700; }
 
+/* ── Search input ───────────────────────────────── */
+.search-input {
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.3);
+  color: white; border-radius: 6px;
+  padding: 4px 8px; font-size: 12px;
+  font-family: inherit; width: 140px;
+}
+.search-input::placeholder { color: rgba(255,255,255,0.45); }
+.search-input:focus { outline: none; background: rgba(255,255,255,0.25); }
+@media (max-width: 480px) { .search-input { width: 100px; } }
+
+/* ── Sortable headers ───────────────────────────── */
+thead th.sortable { cursor: pointer; user-select: none; }
+thead th.sortable:hover { background: var(--tan-dark); }
+thead th.sort-active { background: var(--tan-dark); color: var(--green-dark); }
+.sort-arrow { margin-left: 3px; font-size: 9px; opacity: 0.65; }
+
 /* ── Placeholder panel ──────────────────────────── */
 .placeholder {
   text-align: center; padding: 60px 20px;
@@ -266,6 +284,8 @@ td { padding: 7px 8px; vertical-align: middle; }
     <label>Time</label>
     <input type="time" class="time-input" id="gameTime">
     <button class="now-btn" id="nowBtn">Now</button>
+    <label style="margin-left:4px">Search</label>
+    <input type="search" class="search-input" id="search-input" placeholder="Filter by name…" autocomplete="off">
     <div class="museum-stat" id="museumStat"></div>
   </div>
 </header>
@@ -305,12 +325,12 @@ td { padding: 7px 8px; vertical-align: middle; }
     <table>
       <thead>
         <tr>
-          <th style="width:28px">#</th>
-          <th>Name</th>
+          <th class="sortable" data-tab="bugs" data-col="id" style="width:28px"># <span class="sort-arrow"></span></th>
+          <th class="sortable" data-tab="bugs" data-col="name">Name <span class="sort-arrow"></span></th>
           <th class="center" style="width:38px">Found</th>
           <th class="center" style="width:38px">Donated</th>
-          <th class="price-cell">Bells</th>
-          <th>Location</th>
+          <th class="price-cell sortable" data-tab="bugs" data-col="price">Bells <span class="sort-arrow"></span></th>
+          <th class="sortable" data-tab="bugs" data-col="loc">Location <span class="sort-arrow"></span></th>
           <th class="months-cell">Months</th>
         </tr>
       </thead>
@@ -347,12 +367,12 @@ td { padding: 7px 8px; vertical-align: middle; }
     <table>
       <thead>
         <tr>
-          <th style="width:28px">#</th>
-          <th>Name</th>
+          <th class="sortable" data-tab="fish" data-col="id" style="width:28px"># <span class="sort-arrow"></span></th>
+          <th class="sortable" data-tab="fish" data-col="name">Name <span class="sort-arrow"></span></th>
           <th class="center" style="width:38px">Found</th>
           <th class="center" style="width:38px">Donated</th>
-          <th class="price-cell">Bells</th>
-          <th>Shadow — Location</th>
+          <th class="price-cell sortable" data-tab="fish" data-col="price">Bells <span class="sort-arrow"></span></th>
+          <th class="sortable" data-tab="fish" data-col="loc">Shadow — Location <span class="sort-arrow"></span></th>
           <th class="months-cell">Months</th>
         </tr>
       </thead>
@@ -383,10 +403,10 @@ td { padding: 7px 8px; vertical-align: middle; }
     <table>
       <thead>
         <tr>
-          <th>Name</th>
+          <th class="sortable" data-tab="fossils" data-col="name">Name <span class="sort-arrow"></span></th>
           <th class="center" style="width:38px">Found</th>
           <th class="center" style="width:38px">Donated</th>
-          <th class="price-cell">Bells</th>
+          <th class="price-cell sortable" data-tab="fossils" data-col="price">Bells <span class="sort-arrow"></span></th>
         </tr>
       </thead>
       <tbody id="fossil-body"></tbody>
@@ -633,6 +653,61 @@ const MONTHS = ["J","F","M","A","M","J","J","A","S","O","N","D"];
 
 let state = { bugs:{}, fish:{}, fossils:{} };
 let firebaseReady = false;
+let activeTab = 'bugs';
+const searchTerms = { bugs: '', fish: '', fossils: '' };
+
+/* ── Sort state ───────────────────────────────────── */
+const sort = {
+  bugs:    { col: null, dir: 1 },   // col: 'name'|'price'|'loc', dir: 1=asc -1=desc
+  fish:    { col: null, dir: 1 },
+  fossils: { col: null, dir: 1 },
+};
+
+const RARITY_ORDER = {
+  'Very rare (A)':0, 'Rare (B)':1, 'Very uncommon (C)':2,
+  'Uncommon (D)':3, 'Common (E)':4, 'Unknown':5
+};
+const SHADOW_ORDER = {
+  'Tiny':0,'Small':1,'Medium':2,'Long & Thin':3,
+  'Large':4,'Very Large':5,'Huge':6,'Huge (finned)':7
+};
+
+function getSearch(tab) {
+  return searchTerms[tab] || '';
+}
+
+function applySort(list, tab) {
+  const { col, dir } = sort[tab];
+  if (!col) return list;
+  return [...list].sort((a, b) => {
+    let av, bv;
+    if (col === 'id')    { av = a.id; bv = b.id; }
+    if (col === 'name')  { av = a.name.toLowerCase(); bv = b.name.toLowerCase(); }
+    if (col === 'price') { av = a.price; bv = b.price; }
+    if (col === 'loc') {
+      if (tab === 'bugs')  { av = RARITY_ORDER[a.rarity] ?? 5; bv = RARITY_ORDER[b.rarity] ?? 5; }
+      if (tab === 'fish')  { av = SHADOW_ORDER[a.shadow]  ?? 9; bv = SHADOW_ORDER[b.shadow]  ?? 9; }
+    }
+    if (av < bv) return -1 * dir;
+    if (av > bv) return  1 * dir;
+    return 0;
+  });
+}
+
+function updateSortArrows(tab) {
+  document.querySelectorAll(`thead th[data-tab="${tab}"]`).forEach(th => {
+    const span = th.querySelector('.sort-arrow');
+    if (!span) return;
+    const col = th.dataset.col;
+    if (sort[tab].col === col) {
+      span.textContent = sort[tab].dir === 1 ? '▲' : '▼';
+      th.classList.add('sort-active');
+    } else {
+      span.textContent = '';
+      th.classList.remove('sort-active');
+    }
+  });
+}
 
 function saveState() {
   set(stateRef, state);
@@ -803,7 +878,11 @@ function renderBugs() {
 
   tbody.innerHTML = '';
 
-  BUGS.forEach(b => {
+  const q = getSearch('bugs');
+  let bugList = q ? BUGS.filter(b => b.name.toLowerCase().includes(q)) : BUGS.slice();
+  bugList = applySort(bugList, 'bugs');
+
+  bugList.forEach(b => {
     const s           = getItem('bugs', b.id);
     const availMonth  = isAvailableMonth(b);
     const availNow    = isAvailableNow(b);
@@ -877,6 +956,8 @@ function renderBugs() {
   tbody.querySelectorAll('.name-cell').forEach(cell => {
     cell.addEventListener('click', () => showDetail('bugs', +cell.dataset.id));
   });
+
+  updateSortArrows('bugs');
 }
 
 /* ════════════════════════════════════════════════
@@ -896,7 +977,11 @@ function renderFish() {
 
   tbody.innerHTML = '';
 
-  FISH.forEach(f => {
+  const qf = getSearch('fish');
+  let fishList = qf ? FISH.filter(f => f.name.toLowerCase().includes(qf)) : FISH.slice();
+  fishList = applySort(fishList, 'fish');
+
+  fishList.forEach(f => {
     const s          = getItem('fish', f.id);
     const availMonth = isAvailableMonth(f);
     const availNow   = isAvailableNow(f);
@@ -952,6 +1037,8 @@ function renderFish() {
   tbody.querySelectorAll('.name-cell').forEach(cell => {
     cell.addEventListener('click', () => showDetail('fish', +cell.dataset.id));
   });
+
+  updateSortArrows('fish');
 }
 
 /* ════════════════════════════════════════════════
@@ -970,47 +1057,70 @@ function renderFossils() {
 
   tbody.innerHTML = '';
 
-  // Build group order: Standalone first, then sets in data order
-  const groups = [];
-  const seen = new Set();
-  FOSSILS.forEach(f => {
-    const g = f.group || '__standalone__';
-    if (!seen.has(g)) { seen.add(g); groups.push(g); }
-  });
+  const qfo = getSearch('fossils');
+  const fossilSortActive = !!sort.fossils.col;
 
-  groups.forEach(g => {
-    const items   = FOSSILS.filter(f => (f.group || '__standalone__') === g);
-    const gDonated= items.filter(f => getItem('fossils', f.id).donated).length;
-    const gFound  = items.filter(f => getItem('fossils', f.id).found).length;
-    const label   = g === '__standalone__' ? 'Standalone Fossils' : g;
-    const complete = gDonated === items.length;
+  // Flat mode: when search or sort is active
+  if (qfo || fossilSortActive) {
+    let fossilList = qfo ? FOSSILS.filter(f => f.name.toLowerCase().includes(qfo)) : FOSSILS.slice();
+    fossilList = applySort(fossilList, 'fossils');
 
-    // Group header row
-    const headerTr = document.createElement('tr');
-    headerTr.innerHTML = `
-      <td colspan="4" style="padding:0">
-        <div class="fossil-group-header">
-          <span>${label}</span>
-          <span class="fossil-set-badge ${complete ? 'complete' : ''}">${gDonated}/${items.length} donated</span>
-        </div>
-      </td>`;
-    tbody.appendChild(headerTr);
-
-    items.forEach(f => {
+    fossilList.forEach(f => {
       const s = getItem('fossils', f.id);
       if (hideD && s.donated) return;
       visible++;
       const tr = document.createElement('tr');
       if (s.donated) tr.classList.add('donated-row');
+      const groupLabel = f.group ? ` <span style="font-size:10px;color:var(--text-muted);font-weight:400">(${f.group})</span>` : '';
       tr.innerHTML = `
-        <td class="name-cell" data-id="${f.id}" style="padding-left:14px">${f.name}</td>
+        <td class="name-cell" data-id="${f.id}">${f.name}${groupLabel}</td>
         <td class="center"><div class="cb-wrap"><input type="checkbox" ${s.found?'checked':''} data-id="${f.id}" data-type="found"></div></td>
         <td class="center"><div class="cb-wrap"><input type="checkbox" class="donated-cb" ${s.donated?'checked':''} data-id="${f.id}" data-type="donated"></div></td>
         <td class="price-cell">${f.price.toLocaleString()} 🔔</td>
       `;
       tbody.appendChild(tr);
     });
-  });
+  } else {
+    // Grouped mode: default view
+    const groups = [];
+    const seen = new Set();
+    FOSSILS.forEach(f => {
+      const g = f.group || '__standalone__';
+      if (!seen.has(g)) { seen.add(g); groups.push(g); }
+    });
+
+    groups.forEach(g => {
+      const items    = FOSSILS.filter(f => (f.group || '__standalone__') === g);
+      const gDonated = items.filter(f => getItem('fossils', f.id).donated).length;
+      const label    = g === '__standalone__' ? 'Standalone Fossils' : g;
+      const complete = gDonated === items.length;
+
+      const headerTr = document.createElement('tr');
+      headerTr.innerHTML = `
+        <td colspan="4" style="padding:0">
+          <div class="fossil-group-header">
+            <span>${label}</span>
+            <span class="fossil-set-badge ${complete ? 'complete' : ''}">${gDonated}/${items.length} donated</span>
+          </div>
+        </td>`;
+      tbody.appendChild(headerTr);
+
+      items.forEach(f => {
+        const s = getItem('fossils', f.id);
+        if (hideD && s.donated) return;
+        visible++;
+        const tr = document.createElement('tr');
+        if (s.donated) tr.classList.add('donated-row');
+        tr.innerHTML = `
+          <td class="name-cell" data-id="${f.id}" style="padding-left:14px">${f.name}</td>
+          <td class="center"><div class="cb-wrap"><input type="checkbox" ${s.found?'checked':''} data-id="${f.id}" data-type="found"></div></td>
+          <td class="center"><div class="cb-wrap"><input type="checkbox" class="donated-cb" ${s.donated?'checked':''} data-id="${f.id}" data-type="donated"></div></td>
+          <td class="price-cell">${f.price.toLocaleString()} 🔔</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    });
+  }
 
   document.getElementById('fossil-found-bar').style.width     = (found/52*100)+'%';
   document.getElementById('fossil-donated-bar').style.width   = (donated/52*100)+'%';
@@ -1030,6 +1140,8 @@ function renderFossils() {
   tbody.querySelectorAll('.name-cell').forEach(cell => {
     cell.addEventListener('click', () => showDetail('fossils', +cell.dataset.id));
   });
+
+  updateSortArrows('fossils');
 }
 
 /* ════════════════════════════════════════════════
@@ -1052,7 +1164,10 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
     btn.classList.add('active');
-    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    activeTab = btn.dataset.tab;
+    document.getElementById('tab-' + activeTab).classList.add('active');
+    // restore this tab's search term in the input
+    document.getElementById('search-input').value = searchTerms[activeTab];
   });
 });
 
@@ -1067,6 +1182,27 @@ document.getElementById('fossil-hide-donated').addEventListener('change', render
 document.getElementById('gameDate').addEventListener('change', () => { renderBugs(); renderFish(); });
 document.getElementById('gameTime').addEventListener('change', () => { renderBugs(); renderFish(); });
 document.getElementById('nowBtn').addEventListener('click', () => { setNow(); renderBugs(); renderFish(); });
+document.getElementById('search-input').addEventListener('input', () => {
+  searchTerms[activeTab] = document.getElementById('search-input').value.trim().toLowerCase();
+  rerender();
+});
+
+/* ── Sort header clicks ───────────────────────── */
+document.querySelectorAll('thead th.sortable').forEach(th => {
+  th.addEventListener('click', () => {
+    const tab = th.dataset.tab;
+    const col = th.dataset.col;
+    if (sort[tab].col === col) {
+      sort[tab].dir *= -1;
+    } else {
+      sort[tab].col = col;
+      sort[tab].dir = 1;
+    }
+    if (tab === 'bugs')    renderBugs();
+    else if (tab === 'fish') renderFish();
+    else                   renderFossils();
+  });
+});
 
 /* ════════════════════════════════════════════════
    INIT
