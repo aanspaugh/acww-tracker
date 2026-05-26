@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>AC:WW Collection Tracker</title>
+<title>AC: Wild World — Collection Tracker</title>
 <style>
 /* ── Reset & Base ───────────────────────────────── */
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -149,7 +149,7 @@ td { padding: 7px 8px; vertical-align: middle; }
 }
 .cb-wrap input[type=checkbox].donated-cb { accent-color: var(--green-mid); }
 
-.avail-cell { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+.avail-cell { font-size: 11px; color: var(--text-muted); white-space: normal; word-break: break-word; }
 .avail-now        { color: var(--green-mid); font-weight: 600; }
 .avail-month-only { color: var(--text-muted); }
 .avail-tag { display: inline-block; margin-right: 5px; vertical-align: middle; }
@@ -238,7 +238,7 @@ td { padding: 7px 8px; vertical-align: middle; }
 
 /* ── Responsive ─────────────────────────────────── */
 @media (max-width: 480px) {
-  .months-cell, .price-cell { display: none; }
+  .months-cell { display: none; }
   td, th { padding: 6px 5px; }
   .name-cell { font-size: 12px; }
 }
@@ -259,7 +259,7 @@ td { padding: 7px 8px; vertical-align: middle; }
 
 <!-- ── Header ─────────────────────────────────── -->
 <header class="app-header">
-  <h1>🍃 AC: Wild World — Museum Tracker</h1>
+  <h1>🍃 AC: Wild World — Collection Tracker</h1>
   <div class="header-controls">
     <label>Date</label>
     <input type="date" class="date-input" id="gameDate">
@@ -309,9 +309,9 @@ td { padding: 7px 8px; vertical-align: middle; }
           <th>Name</th>
           <th class="center" style="width:38px">Found</th>
           <th class="center" style="width:38px">Donated</th>
+          <th class="price-cell">Bells</th>
           <th>Location</th>
           <th class="months-cell">Months</th>
-          <th class="price-cell">Bells</th>
         </tr>
       </thead>
       <tbody id="bug-body"></tbody>
@@ -351,9 +351,9 @@ td { padding: 7px 8px; vertical-align: middle; }
           <th>Name</th>
           <th class="center" style="width:38px">Found</th>
           <th class="center" style="width:38px">Donated</th>
+          <th class="price-cell">Bells</th>
           <th>Shadow — Location</th>
           <th class="months-cell">Months</th>
-          <th class="price-cell">Bells</th>
         </tr>
       </thead>
       <tbody id="fish-body"></tbody>
@@ -847,9 +847,9 @@ function renderBugs() {
           <input type="checkbox" class="donated-cb" ${s.donated ? 'checked' : ''} data-id="${b.id}" data-type="donated">
         </div>
       </td>
+      <td class="price-cell">${b.price.toLocaleString()} 🔔</td>
       <td class="avail-cell ${availClass}">${availTag}${rarityPrefix}${b.loc}</td>
       <td class="months-cell">${monthsHtml(b.months)}</td>
-      <td class="price-cell">${b.price.toLocaleString()} 🔔</td>
     `;
     tbody.appendChild(tr);
   });
@@ -927,9 +927,9 @@ function renderFish() {
       <td class="name-cell" data-id="${f.id}">${f.name}</td>
       <td class="center"><div class="cb-wrap"><input type="checkbox" ${s.found ? 'checked':''} data-id="${f.id}" data-type="found"></div></td>
       <td class="center"><div class="cb-wrap"><input type="checkbox" class="donated-cb" ${s.donated ? 'checked':''} data-id="${f.id}" data-type="donated"></div></td>
+      <td class="price-cell">${f.price.toLocaleString()} 🔔</td>
       <td class="avail-cell ${availClass}">${availTag}${shadowPrefix}${f.loc}</td>
       <td class="months-cell">${monthsHtml(f.months)}</td>
-      <td class="price-cell">${f.price.toLocaleString()} 🔔</td>
     `;
     tbody.appendChild(tr);
   });
