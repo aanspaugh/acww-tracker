@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>AC:WW Collection Tracker</title>
+<style>
+/* ── Reset & Base ───────────────────────────────── */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --green-dark:   #3a6b3a;
+  --green-mid:    #5a9e5a;
+  --green-light:  #d4edda;
+  --green-bg:     #f0f7f0;
+  --tan:          #e8dcc8;
+  --tan-dark:     #c8b89a;
+  --blue:         #4a90c4;
+  --blue-light:   #d0e8f8;
+  --gold:         #c8960a;
+  --text:         #2a2a1a;
+  --text-muted:   #7a7a5a;
+  --border:       #c8d8b8;
+  --row-even:     #f8fbf6;
+  --row-odd:      #ffffff;
+  --dim:          0.32;
+  --radius:       10px;
+}
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: var(--green-bg);
+  color: var(--text);
+  min-height: 100vh;
+  font-size: 14px;
+}
+
+/* ── Header ─────────────────────────────────────── */
+.app-header {
+  background: var(--green-dark);
+  color: white;
+  padding: 12px 14px 10px;
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+}
+.app-header h1 {
+  font-size: 16px; font-weight: 700;
+  letter-spacing: 0.03em; margin-bottom: 8px;
+}
+.header-controls {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.header-controls label { font-size: 11px; opacity: 0.8; white-space: nowrap; }
+.date-input, .time-input {
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.3);
+  color: white; border-radius: 6px;
+  padding: 4px 7px; font-size: 12px;
+  font-family: inherit;
+}
+.date-input:focus, .time-input:focus { outline: none; background: rgba(255,255,255,0.25); }
+.now-btn {
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.3);
+  color: white; border-radius: 6px;
+  padding: 4px 9px; font-size: 11px;
+  cursor: pointer; font-family: inherit;
+}
+.now-btn:active { background: rgba(255,255,255,0.3); }
+.museum-stat {
+  margin-left: auto; font-size: 11px;
+  opacity: 0.85; white-space: nowrap;
+}
+
+/* ── Tabs ───────────────────────────────────────── */
+.tabs {
+  display: flex; background: var(--green-dark);
+  border-bottom: 3px solid var(--tan-dark);
+}
+.tab-btn {
+  flex: 1; padding: 9px 4px; font-size: 13px;
+  font-weight: 600; cursor: pointer;
+  background: none; border: none; color: rgba(255,255,255,0.6);
+  letter-spacing: 0.02em; transition: color 0.15s, background 0.15s;
+}
+.tab-btn.active {
+  color: white;
+  background: rgba(255,255,255,0.12);
+  border-bottom: 3px solid var(--tan);
+  margin-bottom: -3px;
+}
+
+/* ── Tab panels ─────────────────────────────────── */
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── Progress bar ───────────────────────────────── */
+.progress-wrap { padding: 10px 12px 6px; }
+.progress-row { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+.progress-label { font-size: 11px; color: var(--text-muted); width: 68px; }
+.progress-track { flex: 1; height: 7px; background: var(--border); border-radius: 4px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+.fill-found    { background: var(--blue); }
+.fill-donated  { background: var(--green-mid); }
+.progress-count { font-size: 11px; color: var(--text-muted); width: 44px; text-align: right; }
+
+/* ── Filter bar ─────────────────────────────────── */
+.filter-bar {
+  padding: 4px 12px 8px;
+  display: flex; gap: 8px; align-items: center;
+}
+.filter-bar label { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 5px; cursor: pointer; }
+.filter-bar input[type=checkbox] { width: 14px; height: 14px; cursor: pointer; accent-color: var(--green-dark); }
+.count-badge {
+  margin-left: auto; font-size: 11px;
+  background: var(--green-dark); color: white;
+  padding: 2px 8px; border-radius: 10px;
+}
+
+/* ── Collection table ───────────────────────────── */
+.table-wrap { overflow-x: auto; padding: 0 0 80px; }
+table { width: 100%; border-collapse: collapse; }
+thead th {
+  position: sticky; top: 0;
+  background: var(--tan); color: var(--green-dark);
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  padding: 7px 8px; text-align: left;
+  border-bottom: 2px solid var(--tan-dark);
+}
+th.center, td.center { text-align: center; }
+tbody tr { border-bottom: 1px solid #eef3e8; transition: background 0.1s; }
+tbody tr:nth-child(even) { background: var(--row-even); }
+tbody tr:nth-child(odd)  { background: var(--row-odd); }
+tbody tr:hover { background: #e8f4e8; }
+tbody tr.dimmed { opacity: var(--dim); }
+tbody tr.donated-row td.name-cell { text-decoration: line-through; color: var(--text-muted); }
+td { padding: 7px 8px; vertical-align: middle; }
+
+.name-cell {
+  font-weight: 600; font-size: 13px;
+  color: var(--green-dark); cursor: pointer;
+}
+.name-cell:hover { text-decoration: underline; }
+
+/* checkboxes */
+.cb-wrap { display: flex; justify-content: center; }
+.cb-wrap input[type=checkbox] {
+  width: 17px; height: 17px; cursor: pointer;
+  accent-color: var(--green-dark);
+}
+.cb-wrap input[type=checkbox].donated-cb { accent-color: var(--green-mid); }
+
+.avail-cell { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+.avail-now        { color: var(--green-mid); font-weight: 600; }
+.avail-month-only { color: var(--text-muted); }
+.avail-tag { display: inline-block; margin-right: 5px; vertical-align: middle; }
+.avail-dot {
+  display: inline-block; width: 9px; height: 9px;
+  border-radius: 50%; vertical-align: middle;
+  margin-right: 5px; flex-shrink: 0;
+}
+.avail-dot-now   { background: var(--green-mid); }
+.avail-dot-clock { font-size: 11px; }
+.rarity-prefix { color: var(--gold); font-weight: 600; }
+
+/* ── Availability key ───────────────────────────── */
+.avail-key {
+  display: flex; gap: 14px; align-items: center;
+  padding: 5px 12px 8px; flex-wrap: wrap;
+}
+.avail-key-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-muted); }
+.key-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--green-mid); }
+.key-dimmed { opacity: 0.4; font-size: 11px; }
+
+.price-cell { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+.months-cell { font-size: 10px; color: var(--text-muted); letter-spacing: 0.05em; }
+.month-on  { color: var(--green-dark); font-weight: 700; }
+
+/* ── Placeholder panel ──────────────────────────── */
+.placeholder {
+  text-align: center; padding: 60px 20px;
+  color: var(--text-muted); font-size: 14px;
+}
+.placeholder .icon { font-size: 48px; margin-bottom: 12px; }
+.placeholder p { max-width: 260px; margin: 0 auto; line-height: 1.5; }
+
+/* ── Fossil groups ───────────────────────────────── */
+.fossil-group { margin-bottom: 2px; }
+.fossil-group-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 7px 12px; background: var(--tan);
+  border-top: 2px solid var(--tan-dark); border-bottom: 1px solid var(--tan-dark);
+  font-weight: 700; font-size: 12px; color: var(--green-dark);
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.fossil-set-badge {
+  font-size: 11px; font-weight: 700;
+  background: var(--green-dark); color: white;
+  padding: 2px 8px; border-radius: 10px; letter-spacing: 0;
+  text-transform: none;
+}
+.fossil-set-badge.complete { background: var(--green-mid); }
+
+/* ── Detail modal ───────────────────────────────── */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5); z-index: 200;
+  align-items: flex-end; justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal-box {
+  background: white; border-radius: 14px 14px 0 0;
+  width: 100%; max-width: 520px; max-height: 80vh;
+  overflow-y: auto; padding: 20px 18px 32px;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.2);
+}
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px;
+}
+.modal-header h3 { font-size: 17px; color: var(--green-dark); font-weight: 700; }
+.modal-close {
+  background: var(--green-bg); border: none; border-radius: 50%;
+  width: 28px; height: 28px; font-size: 16px; cursor: pointer;
+  color: var(--text-muted); display: flex; align-items: center; justify-content: center;
+}
+.detail-grid {
+  display: grid; grid-template-columns: 100px 1fr;
+  gap: 8px 12px; font-size: 13px;
+}
+.detail-label { color: var(--text-muted); font-weight: 600; font-size: 12px; padding-top: 1px; }
+.detail-val { color: var(--text); }
+.detail-months { font-size: 12px; letter-spacing: 0.04em; }
+.detail-divider { grid-column: 1/-1; border: none; border-top: 1px solid var(--border); margin: 4px 0; }
+.detail-donated-wrap { margin-top: 16px; display: flex; gap: 20px; }
+.detail-cb-label { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.detail-cb-label input { width: 18px; height: 18px; accent-color: var(--green-dark); cursor: pointer; }
+.detail-cb-label.donated input { accent-color: var(--green-mid); }
+
+/* ── Responsive ─────────────────────────────────── */
+@media (max-width: 480px) {
+  .months-cell, .price-cell { display: none; }
+  td, th { padding: 6px 5px; }
+  .name-cell { font-size: 12px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── Loading overlay ───────────────────────── -->
+<div id="loading-overlay" style="
+  position:fixed; inset:0; z-index:999;
+  background:var(--green-bg); display:flex;
+  align-items:center; justify-content:center;
+  flex-direction:column; gap:12px; font-size:15px; color:var(--green-dark);
+">
+  <div style="font-size:36px">🍃</div>
+  <div>Connecting to database…</div>
+</div>
+
+<!-- ── Header ─────────────────────────────────── -->
+<header class="app-header">
+  <h1>🍃 AC: Wild World — Museum Tracker</h1>
+  <div class="header-controls">
+    <label>Date</label>
+    <input type="date" class="date-input" id="gameDate">
+    <label>Time</label>
+    <input type="time" class="time-input" id="gameTime">
+    <button class="now-btn" id="nowBtn">Now</button>
+    <div class="museum-stat" id="museumStat"></div>
+  </div>
+</header>
+
+<!-- ── Tab nav ────────────────────────────────── -->
+<nav class="tabs">
+  <button class="tab-btn active" data-tab="bugs">🦋 Bugs</button>
+  <button class="tab-btn" data-tab="fish">🐟 Fish</button>
+  <button class="tab-btn" data-tab="fossils">🦕 Fossils</button>
+</nav>
+
+<!-- ── Bugs tab ───────────────────────────────── -->
+<div class="tab-panel active" id="tab-bugs">
+  <div class="progress-wrap">
+    <div class="progress-row">
+      <span class="progress-label">Found</span>
+      <div class="progress-track"><div class="progress-fill fill-found" id="bug-found-bar" style="width:0%"></div></div>
+      <span class="progress-count" id="bug-found-count">0/56</span>
+    </div>
+    <div class="progress-row">
+      <span class="progress-label">Donated</span>
+      <div class="progress-track"><div class="progress-fill fill-donated" id="bug-donated-bar" style="width:0%"></div></div>
+      <span class="progress-count" id="bug-donated-count">0/56</span>
+    </div>
+  </div>
+  <div class="filter-bar">
+    <label><input type="checkbox" id="bug-hide-unavailable"> Hide unavailable</label>
+    <label><input type="checkbox" id="bug-hide-donated"> Hide donated</label>
+    <span class="count-badge" id="bug-visible-count">56 showing</span>
+  </div>
+  <div class="avail-key">
+    <div class="avail-key-item"><span class="key-dot"></span> Catchable now</div>
+    <div class="avail-key-item">🕐 Right month, check time window</div>
+    <div class="avail-key-item"><span class="key-dimmed">Dimmed</span> Not available this month</div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:28px">#</th>
+          <th>Name</th>
+          <th class="center" style="width:38px">Found</th>
+          <th class="center" style="width:38px">Donated</th>
+          <th>Location</th>
+          <th class="months-cell">Months</th>
+          <th class="price-cell">Bells</th>
+        </tr>
+      </thead>
+      <tbody id="bug-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── Fish tab ───────────────────────────────── -->
+<div class="tab-panel" id="tab-fish">
+  <div class="progress-wrap">
+    <div class="progress-row">
+      <span class="progress-label">Found</span>
+      <div class="progress-track"><div class="progress-fill fill-found" id="fish-found-bar" style="width:0%"></div></div>
+      <span class="progress-count" id="fish-found-count">0/56</span>
+    </div>
+    <div class="progress-row">
+      <span class="progress-label">Donated</span>
+      <div class="progress-track"><div class="progress-fill fill-donated" id="fish-donated-bar" style="width:0%"></div></div>
+      <span class="progress-count" id="fish-donated-count">0/56</span>
+    </div>
+  </div>
+  <div class="filter-bar">
+    <label><input type="checkbox" id="fish-hide-unavailable"> Hide unavailable</label>
+    <label><input type="checkbox" id="fish-hide-donated"> Hide donated</label>
+    <span class="count-badge" id="fish-visible-count">56 showing</span>
+  </div>
+  <div class="avail-key">
+    <div class="avail-key-item"><span class="key-dot"></span> Catchable now</div>
+    <div class="avail-key-item">🕐 Right month, check time window</div>
+    <div class="avail-key-item"><span class="key-dimmed">Dimmed</span> Not available this month</div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:28px">#</th>
+          <th>Name</th>
+          <th class="center" style="width:38px">Found</th>
+          <th class="center" style="width:38px">Donated</th>
+          <th>Shadow — Location</th>
+          <th class="months-cell">Months</th>
+          <th class="price-cell">Bells</th>
+        </tr>
+      </thead>
+      <tbody id="fish-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── Fossils tab ────────────────────────────── -->
+<div class="tab-panel" id="tab-fossils">
+  <div class="progress-wrap">
+    <div class="progress-row">
+      <span class="progress-label">Found</span>
+      <div class="progress-track"><div class="progress-fill fill-found" id="fossil-found-bar" style="width:0%"></div></div>
+      <span class="progress-count" id="fossil-found-count">0/52</span>
+    </div>
+    <div class="progress-row">
+      <span class="progress-label">Donated</span>
+      <div class="progress-track"><div class="progress-fill fill-donated" id="fossil-donated-bar" style="width:0%"></div></div>
+      <span class="progress-count" id="fossil-donated-count">0/52</span>
+    </div>
+  </div>
+  <div class="filter-bar">
+    <label><input type="checkbox" id="fossil-hide-donated"> Hide donated</label>
+    <span class="count-badge" id="fossil-visible-count">52 showing</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th class="center" style="width:38px">Found</th>
+          <th class="center" style="width:38px">Donated</th>
+          <th class="price-cell">Bells</th>
+        </tr>
+      </thead>
+      <tbody id="fossil-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── Detail modal ───────────────────────────── -->
+<div class="modal-overlay" id="detail-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 id="detail-title"></h3>
+      <button class="modal-close" id="detail-close">✕</button>
+    </div>
+    <div id="detail-content"></div>
+    <div class="detail-donated-wrap">
+      <label class="detail-cb-label">
+        <input type="checkbox" id="detail-found-cb"> Found
+      </label>
+      <label class="detail-cb-label donated">
+        <input type="checkbox" id="detail-donated-cb"> Donated
+      </label>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp }                    from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+import { getDatabase, ref, set, onValue }   from "https://www.gstatic.com/firebasejs/12.13.0/firebase-database.js";
+
+/* ── Firebase config ──────────────────────────── */
+const firebaseConfig = {
+  apiKey:            "AIzaSyDfn4DsQZsFh9pF1hzW40EqUMciMnjqui8",
+  authDomain:        "acww-tracker.firebaseapp.com",
+  databaseURL:       "https://acww-tracker-default-rtdb.firebaseio.com",
+  projectId:         "acww-tracker",
+  storageBucket:     "acww-tracker.firebasestorage.app",
+  messagingSenderId: "474904002607",
+  appId:             "1:474904002607:web:302ddbdec39d25a9ba06da"
+};
+const fbApp = initializeApp(firebaseConfig);
+const db    = getDatabase(fbApp);
+const stateRef = ref(db, 'state');
+
+/* ════════════════════════════════════════════════
+   DATA
+   months: array of 12 booleans (Jan=0 … Dec=11)
+   time:   [startHour, endHour] 24h, null = all day
+           if start > end it wraps midnight
+   ════════════════════════════════════════════════ */
+
+const BUGS = [
+  { id:1,  name:"Common butterfly",   price:90,    loc:"Flying near flowers",                    rarity:"Common (E)",       time:null, timeStr:"4 AM – 7 PM",                  months:[0,0,1,1,1,1,1,1,1,1,0,0], peak:"Jul – Aug" },
+  { id:2,  name:"Yellow butterfly",   price:90,    loc:"Flying near flowers",                    rarity:"Unknown",          time:null, timeStr:"4 AM – 7 PM (Mar–Jun); 8 AM – 5 PM (Jul–Aug)", months:[0,0,1,1,1,1,1,1,1,0,0,0], peak:"" },
+  { id:3,  name:"Tiger butterfly",    price:160,   loc:"Flying near red/pink flowers",           rarity:"Unknown",          time:null, timeStr:"4 AM – 7 PM (Mar–Jun); 8 AM – 5 PM (Jul–Aug)", months:[0,0,1,1,1,1,1,1,1,0,0,0], peak:"8 AM – 5 PM (Mar–Jun)" },
+  { id:4,  name:"Peacock",            price:220,   loc:"Flying near blue/purple/black flowers",  rarity:"Very uncommon (C)",time:[8,16],timeStr:"8 AM – 4 PM",                 months:[0,0,1,1,1,1,1,1,1,0,0,0], peak:"" },
+  { id:5,  name:"Monarch",            price:140,   loc:"Flying near flowers",                    rarity:"Uncommon (D)",     time:[8,17],timeStr:"8 AM – 5 PM",                 months:[0,0,0,0,0,0,0,0,1,1,1,0], peak:"" },
+  { id:6,  name:"Emperor",            price:2500,  loc:"Flying near flowers",                    rarity:"Unknown",          time:[8,17],timeStr:"8 AM – 5 PM",                 months:[0,0,0,0,0,1,1,1,0,0,0,0], peak:"" },
+  { id:7,  name:"Agrias butterfly",   price:3000,  loc:"Flying near flowers",                    rarity:"Unknown",          time:[8,17],timeStr:"8 AM – 5 PM",                 months:[0,0,0,0,0,1,1,1,0,0,0,0], peak:"" },
+  { id:8,  name:"Birdwing",           price:3000,  loc:"Flying near flowers",                    rarity:"Very rare (A)",    time:[8,16],timeStr:"8 AM – 4 PM",                 months:[0,0,0,0,0,1,1,0,0,0,0,0], peak:"" },
+  { id:9,  name:"Moth",               price:60,    loc:"Near outdoor lights",                    rarity:"Unknown",          time:[19,4],timeStr:"7 PM – 4 AM",                 months:[0,0,0,0,1,1,1,1,0,0,0,0], peak:"11 PM – 4 AM (Jun–Aug)" },
+  { id:10, name:"Oak silk moth",      price:1200,  loc:"On trees",                               rarity:"Unknown",          time:[19,4],timeStr:"7 PM – 4 AM",                 months:[0,0,0,0,1,1,1,1,0,0,0,0], peak:"" },
+  { id:11, name:"Honeybee",           price:100,   loc:"Flying near flowers",                    rarity:"Common (E)",       time:[9,16],timeStr:"9 AM – 4 PM",                 months:[0,0,1,1,1,1,1,0,0,0,0,0], peak:"Mar – Jul" },
+  { id:12, name:"Bee",                price:4500,  loc:"Shaking trees",                          rarity:"Unknown",          time:null,  timeStr:"All day",                     months:[0,0,0,0,0,1,1,1,0,0,0,0], peak:"" },
+  { id:13, name:"Long locust",        price:200,   loc:"On the ground",                          rarity:"Unknown",          time:[8,19],timeStr:"8 AM – 7 PM",                 months:[0,0,0,0,0,0,0,1,1,1,1,0], peak:"Sep – Nov" },
+  { id:14, name:"Migratory locust",   price:600,   loc:"On the ground",                          rarity:"Unknown",          time:[8,19],timeStr:"8 AM – 7 PM",                 months:[0,0,0,0,0,0,0,1,1,1,1,0], peak:"8 AM – 4 PM" },
+  { id:15, name:"Mantis",             price:430,   loc:"On flowers",                             rarity:"Unknown",          time:[8,17],timeStr:"8 AM – 5 PM",                 months:[0,0,0,0,0,0,0,1,1,1,1,0], peak:"8 AM – 4 PM (Sep–Nov)" },
+  { id:16, name:"Orchid mantis",      price:2400,  loc:"On white flowers",                       rarity:"Unknown",          time:[8,17],timeStr:"8 AM – 5 PM",                 months:[0,0,0,0,0,0,0,1,1,1,1,0], peak:"8 AM – 4 PM (Sep–Nov)" },
+  { id:17, name:"Brown cicada",       price:200,   loc:"On trees",                               rarity:"Unknown",          time:[8,17],timeStr:"8 AM – 5 PM",                 months:[0,0,0,0,0,0,1,1,0,0,0,0], peak:"8 AM – 4 PM" },
+  { id:18, name:"Robust cicada",      price:300,   loc:"On trees",                               rarity:"Unknown",          time:[8,17],timeStr:"8 AM – 5 PM",                 months:[0,0,0,0,0,0,1,1,0,0,0,0], peak:"8 AM – 4 PM" },
+  { id:19, name:"Walker cicada",      price:400,   loc:"On trees (hardwood and cedar)",          rarity:"Unknown",          time:[8,17],timeStr:"8 AM – 5 PM",                 months:[0,0,0,0,0,0,1,1,0,0,0,0], peak:"" },
+  { id:20, name:"Evening cicada",     price:550,   loc:"On trees (hardwood and cedar)",          rarity:"Common (E)",       time:null,  timeStr:"4 AM – 8 AM; 4 PM – 7 PM",   months:[0,0,0,0,0,0,1,1,0,0,0,0], peak:"Aug" },
+  { id:21, name:"Lantern fly",        price:1800,  loc:"On trees",                               rarity:"Unknown",          time:[16,8],timeStr:"4 PM – 7 PM; 11 PM – 8 AM",  months:[0,0,0,0,0,1,1,1,1,0,0,0], peak:"" },
+  { id:22, name:"Red dragonfly",      price:80,    loc:"Flying",                                 rarity:"Unknown",          time:[8,19],timeStr:"8 AM – 7 PM",                 months:[0,0,0,0,0,0,0,0,1,1,0,0], peak:"4 PM – 5 PM" },
+  { id:23, name:"Darner dragonfly",   price:200,   loc:"Flying",                                 rarity:"Common (E)",       time:[8,17],timeStr:"8 AM – 5 PM",                 months:[0,0,0,0,0,1,1,1,0,0,0,0], peak:"" },
+  { id:24, name:"Banded dragonfly",   price:4500,  loc:"Flying",                                 rarity:"Unknown",          time:[8,17],timeStr:"8 AM – 5 PM",                 months:[0,0,0,0,0,1,1,1,0,0,0,0], peak:"" },
+  { id:25, name:"Ant",                price:80,    loc:"On spoiled turnips/candy",               rarity:"Common (E)",       time:null,  timeStr:"All day",                     months:[1,1,1,1,1,1,1,1,1,1,1,1], peak:"" },
+  { id:26, name:"Pondskater",         price:130,   loc:"On rivers and ponds",                    rarity:"Uncommon (D)",     time:[8,19],timeStr:"8 AM – 7 PM",                 months:[0,0,0,0,1,1,1,1,1,1,0,0], peak:"" },
+  { id:27, name:"Snail",              price:250,   loc:"On flowers (raining)",                   rarity:"Unknown",          time:null,  timeStr:"All day",                     months:[0,0,0,1,1,1,1,1,1,0,0,0], peak:"" },
+  { id:28, name:"Cricket",            price:130,   loc:"On the ground",                          rarity:"Common (E)",       time:[17,8],timeStr:"5 PM – 8 AM",                 months:[0,0,0,0,0,0,0,0,1,1,1,0], peak:"" },
+  { id:29, name:"Bell cricket",       price:430,   loc:"On the ground",                          rarity:"Unknown",          time:[17,8],timeStr:"5 PM – 8 AM",                 months:[0,0,0,0,0,0,0,0,1,1,0,0], peak:"" },
+  { id:30, name:"Grasshopper",        price:160,   loc:"On the ground",                          rarity:"Unknown",          time:null,  timeStr:"4 PM – 5 PM (Jul); 8 AM – 5 PM (Aug–Sep)", months:[0,0,0,0,0,0,1,1,1,0,0,0], peak:"Sep" },
+  { id:31, name:"Mole cricket",       price:280,   loc:"Underground",                            rarity:"Unknown",          time:null,  timeStr:"All day",                     months:[1,1,0,0,0,0,0,0,0,0,1,1], peak:"" },
+  { id:32, name:"Walkingstick",       price:600,   loc:"On trees (any kind)",                    rarity:"Very uncommon (C)",time:null,  timeStr:"4 AM – 8 AM; 5 PM – 7 PM (Jul–Aug)",months:[0,0,0,0,0,0,1,1,1,1,1,0], peak:"" },
+  { id:33, name:"Ladybug",            price:200,   loc:"On flowers",                             rarity:"Unknown",          time:[8,17],timeStr:"8 AM – 5 PM",                 months:[0,0,1,1,1,1,0,0,0,0,0,0], peak:"Mar – May" },
+  { id:34, name:"Fruit beetle",       price:100,   loc:"On trees",                               rarity:"Unknown",          time:null,  timeStr:"All day (Jul–Aug); 7 PM – 8 AM (Sep)", months:[0,0,0,0,0,0,1,1,1,0,0,0], peak:"7 PM – 4 AM (Jul–Aug)" },
+  { id:35, name:"Scarab beetle",      price:6000,  loc:"On trees",                               rarity:"Unknown",          time:[23,8],timeStr:"11 PM – 8 AM",                months:[0,0,0,0,0,0,1,1,1,0,0,0], peak:"" },
+  { id:36, name:"Dung beetle",        price:800,   loc:"Pushing snowballs",                      rarity:"Unknown",          time:[17,8],timeStr:"5 PM – 8 AM",                 months:[1,0,0,0,0,0,0,0,0,0,0,1], peak:"" },
+  { id:37, name:"Goliath beetle",     price:6000,  loc:"On palm trees",                          rarity:"Unknown",          time:[19,8],timeStr:"7 PM – 8 AM",                 months:[0,0,0,0,0,1,1,1,0,0,0,0], peak:"" },
+  { id:38, name:"Firefly",            price:300,   loc:"Flying near freshwater",                  rarity:"Unknown",          time:[19,4],timeStr:"7 PM – 4 AM",                 months:[0,0,0,0,0,1,1,0,0,0,0,0], peak:"" },
+  { id:39, name:"Jewel beetle",       price:2400,  loc:"On trees",                               rarity:"Unknown",          time:[8,17],timeStr:"8 AM – 5 PM",                 months:[0,0,0,0,0,0,1,1,0,0,0,0], peak:"" },
+  { id:40, name:"Longhorn beetle",    price:260,   loc:"On trees",                               rarity:"Unknown",          time:[8,19],timeStr:"8 AM – 7 PM (Jun); 8 AM – 5 PM (Jul–Aug)", months:[0,0,0,0,0,1,1,1,0,0,0,0], peak:"" },
+  { id:41, name:"Saw stag beetle",    price:2000,  loc:"On trees",                               rarity:"Unknown",          time:null,  timeStr:"All day",                     months:[0,0,0,0,0,0,1,1,0,0,0,0], peak:"11 PM – 8 AM" },
+  { id:42, name:"Stag beetle",        price:2000,  loc:"On trees",                               rarity:"Unknown",          time:[19,8],timeStr:"7 PM – 8 AM",                 months:[0,0,0,0,0,0,1,1,0,0,0,0], peak:"11 PM – 8 AM (Jul–Aug)" },
+  { id:43, name:"Giant beetle",       price:10000, loc:"On trees (any kind)",                    rarity:"Rare (B)",         time:[23,8],timeStr:"11 PM – 8 AM",                months:[0,0,0,0,0,0,1,1,0,0,0,0], peak:"" },
+  { id:44, name:"Rainbow stag",       price:10000, loc:"On trees",                               rarity:"Unknown",          time:[19,8],timeStr:"7 PM – 8 AM",                 months:[0,0,0,0,0,1,1,1,1,0,0,0], peak:"" },
+  { id:45, name:"Dynastid beetle",    price:1350,  loc:"On trees",                               rarity:"Unknown",          time:[19,8],timeStr:"7 PM – 8 AM",                 months:[0,0,0,0,0,0,1,1,0,0,0,0], peak:"11 PM – 8 AM" },
+  { id:46, name:"Atlas beetle",       price:8000,  loc:"On palm trees",                          rarity:"Unknown",          time:[19,8],timeStr:"7 PM – 8 AM",                 months:[0,0,0,0,0,0,1,1,0,0,0,0], peak:"" },
+  { id:47, name:"Elephant beetle",    price:8000,  loc:"On palm trees",                          rarity:"Rare (B)",         time:[19,8],timeStr:"7 PM – 8 AM",                 months:[0,0,0,0,0,0,1,1,0,0,0,0], peak:"" },
+  { id:48, name:"Hercules beetle",    price:12000, loc:"On palm trees",                          rarity:"Unknown",          time:[23,8],timeStr:"11 PM – 8 AM",                months:[0,0,0,0,0,0,1,1,0,0,0,0], peak:"" },
+  { id:49, name:"Flea",               price:70,    loc:"On villagers",                           rarity:"Unknown",          time:null,  timeStr:"All day",                     months:[0,0,1,1,1,1,1,1,1,1,1,0], peak:"" },
+  { id:50, name:"Pill bug",           price:250,   loc:"From hitting rocks",                     rarity:"Unknown",          time:null,  timeStr:"All day",                     months:[1,1,1,0,0,0,0,0,0,0,1,1], peak:"Nov – Mar" },
+  { id:51, name:"Mosquito",           price:130,   loc:"Flying",                                 rarity:"Unknown",          time:[17,4],timeStr:"5 PM – 4 AM",                 months:[0,0,0,0,0,1,1,1,1,0,0,0], peak:"5 PM – 7 PM" },
+  { id:52, name:"Fly",                price:60,    loc:"Near rafflesia, trash, or spoiled turnips", rarity:"Common (E)",    time:null,  timeStr:"All day",                     months:[1,1,1,1,1,1,1,1,1,1,1,1], peak:"" },
+  { id:53, name:"Cockroach",          price:5,     loc:"On trees",                               rarity:"Unknown",          time:null,  timeStr:"All day",                     months:[1,1,1,1,1,1,1,1,1,1,1,1], peak:"" },
+  { id:54, name:"Spider",             price:300,   loc:"Shaking trees",                          rarity:"Common (E)",       time:[19,4],timeStr:"7 PM – 4 AM",                 months:[1,1,1,1,1,1,1,1,1,1,1,1], peak:"" },
+  { id:55, name:"Tarantula",          price:8000,  loc:"On the ground",                          rarity:"Rare (B)",         time:[19,4],timeStr:"7 PM – 4 AM",                 months:[0,0,0,0,0,1,1,1,1,1,1,0], peak:"" },
+  { id:56, name:"Scorpion",           price:8000,  loc:"On the ground",                          rarity:"Unknown",          time:[19,4],timeStr:"7 PM – 4 AM",                 months:[0,0,0,0,0,1,1,1,1,0,0,0], peak:"" },
+];
+
+const FISH = [
+  { id:1,  name:"Bitterling",        price:900,   shadow:"Tiny",         loc:"River",           time:null,    timeStr:"All day",                        months:[1,1,1,0,0,0,0,0,0,0,1,1], size:"10 cm" },
+  { id:2,  name:"Pale chub",         price:200,   shadow:"Tiny",         loc:"River",           time:[9,16],  timeStr:"9 AM – 4 PM",                    months:[1,1,1,1,1,1,1,1,1,1,1,1], size:"15 cm" },
+  { id:3,  name:"Crucian carp",      price:120,   shadow:"Small",        loc:"River",           time:null,    timeStr:"All day",                        months:[1,1,1,1,1,1,1,1,1,1,1,1], size:"30 cm" },
+  { id:4,  name:"Dace",              price:200,   shadow:"Small",        loc:"River",           time:[16,9],  timeStr:"4 PM – 9 AM",                    months:[1,1,1,1,1,1,1,1,1,1,1,1], size:"35 cm" },
+  { id:5,  name:"Barbel steed",      price:200,   shadow:"Medium",       loc:"River",           time:null,    timeStr:"All day",                        months:[1,1,1,1,1,1,1,1,1,1,1,1], size:"50 cm" },
+  { id:6,  name:"Carp",              price:300,   shadow:"Large",        loc:"River",           time:null,    timeStr:"All day",                        months:[1,1,1,1,1,1,1,1,1,1,1,1], size:"75 cm" },
+  { id:7,  name:"Koi",               price:2000,  shadow:"Large",        loc:"River",           time:[16,9],  timeStr:"4 PM – 9 AM",                    months:[1,1,1,1,1,1,1,1,1,1,1,1], size:"75 cm" },
+  { id:8,  name:"Goldfish",          price:1300,  shadow:"Tiny",         loc:"River",           time:null,    timeStr:"All day",                        months:[1,1,1,1,1,1,1,1,1,1,1,1], size:"15 cm" },
+  { id:9,  name:"Popeyed goldfish",  price:1300,  shadow:"Tiny",         loc:"River",           time:[9,16],  timeStr:"9 AM – 4 PM",                    months:[1,1,1,1,1,1,1,1,1,1,1,1], size:"15 cm" },
+  { id:10, name:"Killifish",         price:300,   shadow:"Tiny",         loc:"Pond",            time:null,    timeStr:"All day",                        months:[0,0,0,1,1,1,1,1,1,0,0,0], size:"4 cm" },
+  { id:11, name:"Crawfish",          price:200,   shadow:"Tiny",         loc:"Pond",            time:null,    timeStr:"All day",                        months:[0,0,0,1,1,1,1,1,1,0,0,0], size:"12 cm" },
+  { id:12, name:"Frog",              price:120,   shadow:"Tiny",         loc:"Pond",            time:null,    timeStr:"All day",                        months:[0,0,0,0,1,1,1,1,1,0,0,0], size:"12 cm" },
+  { id:13, name:"Freshwater goby",   price:300,   shadow:"Tiny",         loc:"River",           time:[16,9],  timeStr:"4 PM – 9 AM",                    months:[1,1,1,1,1,1,1,1,1,1,1,1], size:"15 cm" },
+  { id:14, name:"Loach",             price:300,   shadow:"Tiny",         loc:"River",           time:null,    timeStr:"All day",                        months:[0,0,1,1,1,0,0,0,0,0,0,0], size:"20 cm" },
+  { id:15, name:"Catfish",           price:800,   shadow:"Medium",       loc:"River pool",      time:[16,9],  timeStr:"4 PM – 9 AM",                    months:[0,0,0,0,1,1,1,1,1,0,0,0], size:"60 cm" },
+  { id:16, name:"Eel",               price:2000,  shadow:"Long & Thin",  loc:"River",           time:[16,9],  timeStr:"4 PM – 9 AM",                    months:[0,0,0,0,0,1,1,1,1,1,0,0], size:"100 cm" },
+  { id:17, name:"Giant snakehead",   price:5500,  shadow:"Large",        loc:"River pool",      time:[9,16],  timeStr:"9 AM – 4 PM",                    months:[0,0,0,0,0,1,1,1,0,0,0,0], size:"80 cm" },
+  { id:18, name:"Bluegill",          price:120,   shadow:"Small",        loc:"River",           time:[4,21],  timeStr:"4 AM – 9 PM",                    months:[1,1,1,1,1,1,1,1,1,1,1,1], size:"25 cm" },
+  { id:19, name:"Yellow perch",      price:240,   shadow:"Small",        loc:"River",           time:null,    timeStr:"All day",                        months:[1,1,1,0,0,0,0,0,0,1,1,1], size:"35 cm" },
+  { id:20, name:"Black bass",        price:300,   shadow:"Medium",       loc:"River",           time:null,    timeStr:"All day",                        months:[1,1,1,1,1,1,1,1,1,1,1,1], size:"50 cm" },
+  { id:21, name:"Pond smelt",        price:300,   shadow:"Tiny",         loc:"River",           time:null,    timeStr:"All day",                        months:[1,1,0,0,0,0,0,0,0,0,0,1], size:"15 cm" },
+  { id:22, name:"Sweetfish",         price:900,   shadow:"Small",        loc:"River",           time:null,    timeStr:"All day",                        months:[0,0,0,0,0,0,1,1,1,0,0,0], size:"25 cm" },
+  { id:23, name:"Cherry salmon",     price:1000,  shadow:"Small",        loc:"River",           time:null,    timeStr:"4 AM – 9 AM; 4 PM – 9 PM",      months:[0,0,1,1,1,1,0,0,1,1,1,0], size:"35 cm" },
+  { id:24, name:"Char",              price:3800,  shadow:"Medium",       loc:"Waterfall",       time:null,    timeStr:"4 AM – 9 AM; 4 PM – 9 PM",      months:[0,0,1,1,1,1,0,0,1,1,1,0], size:"50 cm" },
+  { id:25, name:"Rainbow trout",     price:800,   shadow:"Large",        loc:"River",           time:null,    timeStr:"4 AM – 9 AM; 4 PM – 9 PM",      months:[0,0,1,1,1,1,0,0,1,1,1,0], size:"70 cm" },
+  { id:26, name:"Stringfish",        price:15000, shadow:"Huge",         loc:"River",           time:[16,9],  timeStr:"4 PM – 9 AM",                    months:[1,1,1,0,0,0,0,0,0,0,0,1], size:"150 cm" },
+  { id:27, name:"Salmon",            price:700,   shadow:"Very Large",   loc:"River",           time:null,    timeStr:"All day",                        months:[0,0,0,0,0,0,0,0,1,0,0,0], size:"90 cm" },
+  { id:28, name:"King salmon",       price:1800,  shadow:"Huge",         loc:"River (mouth)",   time:null,    timeStr:"All day",                        months:[0,0,0,0,0,0,0,0,1,0,0,0], size:"160 cm" },
+  { id:29, name:"Guppy",             price:1300,  shadow:"Tiny",         loc:"River",           time:[9,16],  timeStr:"9 AM – 4 PM",                    months:[0,0,0,0,0,1,1,1,1,0,0,0], size:"4 cm" },
+  { id:30, name:"Angelfish",         price:3000,  shadow:"Tiny",         loc:"River",           time:[16,9],  timeStr:"4 PM – 9 AM",                    months:[0,0,0,0,0,1,1,1,1,0,0,0], size:"12 cm" },
+  { id:31, name:"Piranha",           price:2500,  shadow:"Small",        loc:"River",           time:null,    timeStr:"9 AM – 4 PM; 9 PM – 4 AM",      months:[0,0,0,0,0,1,1,1,1,0,0,0], size:"30 cm" },
+  { id:32, name:"Arowana",           price:10000, shadow:"Large",        loc:"River",           time:[16,9],  timeStr:"4 PM – 9 AM",                    months:[0,0,0,0,0,1,1,1,0,0,0,0], size:"70 cm" },
+  { id:33, name:"Dorado",            price:15000, shadow:"Very Large",   loc:"River",           time:[4,21],  timeStr:"4 AM – 9 PM",                    months:[0,0,0,0,0,1,1,1,0,0,0,0], size:"100 cm" },
+  { id:34, name:"Gar",               price:6000,  shadow:"Huge",         loc:"River pool",      time:[16,9],  timeStr:"4 PM – 9 AM",                    months:[0,0,0,0,0,1,1,1,1,0,0,0], size:"190 cm" },
+  { id:35, name:"Arapaima",          price:10000, shadow:"Huge",         loc:"River",           time:[16,9],  timeStr:"4 PM – 9 AM",                    months:[0,0,0,0,0,1,1,1,0,0,0,0], size:"300 cm" },
+  { id:36, name:"Sea butterfly",     price:1000,  shadow:"Tiny",         loc:"Sea",             time:null,    timeStr:"All day",                        months:[1,1,1,0,0,0,0,0,0,0,0,1], size:"3 cm" },
+  { id:37, name:"Jellyfish",         price:100,   shadow:"Small",        loc:"Sea",             time:null,    timeStr:"All day",                        months:[0,0,0,0,0,0,1,1,0,0,0,0], size:"25 cm" },
+  { id:38, name:"Seahorse",          price:1100,  shadow:"Tiny",         loc:"Sea",             time:null,    timeStr:"All day",                        months:[0,0,0,1,1,1,1,1,1,0,0,0], size:"8 cm" },
+  { id:39, name:"Clownfish",         price:650,   shadow:"Tiny",         loc:"Sea",             time:null,    timeStr:"All day",                        months:[0,0,0,1,1,1,1,1,1,0,0,0], size:"15 cm" },
+  { id:40, name:"Zebra turkeyfish",  price:400,   shadow:"Small",        loc:"Sea",             time:null,    timeStr:"All day",                        months:[0,0,0,1,1,1,1,1,1,0,0,0], size:"30 cm" },
+  { id:41, name:"Puffer fish",       price:240,   shadow:"Small",        loc:"Sea",             time:null,    timeStr:"All day",                        months:[0,0,0,0,0,0,1,1,1,0,0,0], size:"35 cm" },
+  { id:42, name:"Horse mackerel",    price:150,   shadow:"Small",        loc:"Sea",             time:null,    timeStr:"All day",                        months:[1,1,1,1,1,1,1,1,1,1,1,1], size:"40 cm" },
+  { id:43, name:"Barred knifejaw",   price:5000,  shadow:"Medium",       loc:"Sea",             time:null,    timeStr:"All day",                        months:[0,0,1,1,1,1,1,1,1,1,1,0], size:"60 cm" },
+  { id:44, name:"Sea bass",          price:160,   shadow:"Very Large",   loc:"Sea",             time:null,    timeStr:"All day",                        months:[1,1,1,1,1,1,1,1,1,1,1,1], size:"100 cm" },
+  { id:45, name:"Red snapper",       price:3000,  shadow:"Large",        loc:"Sea",             time:null,    timeStr:"All day",                        months:[1,1,1,1,1,1,1,1,1,1,1,1], size:"90 cm" },
+  { id:46, name:"Dab",               price:300,   shadow:"Medium",       loc:"Sea",             time:null,    timeStr:"All day",                        months:[1,1,1,1,1,1,1,1,1,1,1,1], size:"50 cm" },
+  { id:47, name:"Olive flounder",    price:800,   shadow:"Large",        loc:"Sea",             time:null,    timeStr:"All day",                        months:[1,1,1,1,1,1,1,1,1,1,1,1], size:"80 cm" },
+  { id:48, name:"Squid",             price:400,   shadow:"Small",        loc:"Sea",             time:null,    timeStr:"All day",                        months:[0,0,0,0,0,0,1,1,1,0,0,0], size:"35 cm" },
+  { id:49, name:"Octopus",           price:500,   shadow:"Medium",       loc:"Sea",             time:null,    timeStr:"All day",                        months:[0,0,1,1,1,1,1,1,1,1,0,0], size:"60 cm" },
+  { id:50, name:"Football fish",     price:2500,  shadow:"Medium",       loc:"Sea",             time:[16,9],  timeStr:"4 PM – 9 AM",                    months:[1,1,1,0,0,0,0,0,0,0,1,1], size:"60 cm" },
+  { id:51, name:"Tuna",              price:7000,  shadow:"Huge",         loc:"Sea",             time:null,    timeStr:"All day",                        months:[1,0,0,0,0,0,0,0,0,0,0,1], size:"230 cm" },
+  { id:52, name:"Blue marlin",       price:10000, shadow:"Huge",         loc:"Sea",             time:null,    timeStr:"All day",                        months:[0,0,0,0,0,0,1,1,0,0,0,0], size:"220 cm" },
+  { id:53, name:"Ocean sunfish",     price:4000,  shadow:"Huge (finned)",loc:"Sea",             time:[4,21],  timeStr:"4 AM – 9 PM",                    months:[0,0,0,0,0,0,1,1,0,0,0,0], size:"300 cm" },
+  { id:54, name:"Hammerhead shark",  price:8000,  shadow:"Huge (finned)",loc:"Sea",             time:[16,9],  timeStr:"4 PM – 9 AM",                    months:[0,0,0,0,0,0,1,1,0,0,0,0], size:"250 cm" },
+  { id:55, name:"Shark",             price:15000, shadow:"Huge (finned)",loc:"Sea",             time:null,    timeStr:"All day",                        months:[0,0,0,0,0,0,1,1,0,0,0,0], size:"540 cm" },
+  { id:56, name:"Coelacanth",        price:15000, shadow:"Very Large",   loc:"Sea (rain/snow)", time:[16,9],  timeStr:"4 PM – 9 AM",                    months:[1,1,1,1,1,1,1,1,1,1,1,1], size:"150 cm" },
+];
+
+const FOSSILS = [
+  // Standalone (group: null)
+  { id:1,  name:"Amber",            price:1200, group:null },
+  { id:2,  name:"Ammonite",         price:1100, group:null },
+  { id:3,  name:"Dino droppings",   price:1100, group:null },
+  { id:4,  name:"Dinosaur egg",     price:1400, group:null },
+  { id:5,  name:"Fern fossil",      price:1000, group:null },
+  { id:6,  name:"Dinosaur track",   price:1000, group:null },
+  { id:7,  name:"Archaeopteryx",    price:1300, group:null },
+  { id:8,  name:"Peking Man",       price:1100, group:null },
+  { id:9,  name:"Shark tooth",      price:1000, group:null },
+  { id:10, name:"Trilobite",        price:1300, group:null },
+  // T. Rex
+  { id:11, name:"T-rex skull",      price:6000, group:"T. Rex" },
+  { id:12, name:"T-rex torso",      price:5500, group:"T. Rex" },
+  { id:13, name:"T-rex tail",       price:5500, group:"T. Rex" },
+  // Triceratops
+  { id:14, name:"Tricera skull",    price:5500, group:"Triceratops" },
+  { id:15, name:"Tricera torso",    price:5000, group:"Triceratops" },
+  { id:16, name:"Tricera tail",     price:4500, group:"Triceratops" },
+  // Mammoth
+  { id:17, name:"Mammoth skull",    price:3000, group:"Mammoth" },
+  { id:18, name:"Mammoth torso",    price:2500, group:"Mammoth" },
+  // Ankylosaur
+  { id:19, name:"Ankylo skull",     price:3000, group:"Ankylosaur" },
+  { id:20, name:"Ankylo torso",     price:3000, group:"Ankylosaur" },
+  { id:21, name:"Ankylo tail",      price:2500, group:"Ankylosaur" },
+  // Apatosaur
+  { id:22, name:"Apato skull",      price:5000, group:"Apatosaur" },
+  { id:23, name:"Apato torso",      price:4500, group:"Apatosaur" },
+  { id:24, name:"Apato tail",       price:4000, group:"Apatosaur" },
+  // Dimetrodon
+  { id:25, name:"Dimetrodon skull", price:5500, group:"Dimetrodon" },
+  { id:26, name:"Dimetrodon torso", price:5000, group:"Dimetrodon" },
+  { id:27, name:"Dimetrodon tail",  price:4500, group:"Dimetrodon" },
+  // Iguanodon
+  { id:28, name:"Iguanodon skull",  price:4000, group:"Iguanodon" },
+  { id:29, name:"Iguanodon torso",  price:3500, group:"Iguanodon" },
+  { id:30, name:"Iguanodon tail",   price:3000, group:"Iguanodon" },
+  // Sabretooth Tiger
+  { id:31, name:"Sabertooth skull", price:2500, group:"Sabretooth Tiger" },
+  { id:32, name:"Sabertooth torso", price:2000, group:"Sabretooth Tiger" },
+  // Pachycephalosaur
+  { id:33, name:"Pachy skull",      price:4000, group:"Pachycephalosaur" },
+  { id:34, name:"Pachy torso",      price:3500, group:"Pachycephalosaur" },
+  { id:35, name:"Pachy tail",       price:3000, group:"Pachycephalosaur" },
+  // Parasaur
+  { id:36, name:"Parasaur skull",   price:3500, group:"Parasaur" },
+  { id:37, name:"Parasaur torso",   price:3500, group:"Parasaur" },
+  { id:38, name:"Parasaur tail",    price:2500, group:"Parasaur" },
+  // Seismosaur
+  { id:39, name:"Seismo skull",     price:5000, group:"Seismosaur" },
+  { id:40, name:"Seismo chest",     price:4500, group:"Seismosaur" },
+  { id:41, name:"Seismo hip",       price:4000, group:"Seismosaur" },
+  { id:42, name:"Seismo tail",      price:4500, group:"Seismosaur" },
+  // Plesiosaur
+  { id:43, name:"Plesio skull",     price:4000, group:"Plesiosaur" },
+  { id:44, name:"Plesio neck",      price:4500, group:"Plesiosaur" },
+  { id:45, name:"Plesio torso",     price:4500, group:"Plesiosaur" },
+  // Stegosaur
+  { id:46, name:"Stego skull",      price:5000, group:"Stegosaur" },
+  { id:47, name:"Stego torso",      price:4000, group:"Stegosaur" },
+  { id:48, name:"Stego tail",       price:4000, group:"Stegosaur" },
+  // Pteranodon
+  { id:49, name:"Ptera skull",      price:4000, group:"Pteranodon" },
+  { id:50, name:"Ptera body",       price:4000, group:"Pteranodon" },
+  { id:51, name:"Ptera left wing",  price:4500, group:"Pteranodon" },
+  { id:52, name:"Ptera right wing", price:4500, group:"Pteranodon" },
+];
+
+/* ════════════════════════════════════════════════
+   STATE
+   ════════════════════════════════════════════════ */
+const MONTHS = ["J","F","M","A","M","J","J","A","S","O","N","D"];
+
+let state = { bugs:{}, fish:{}, fossils:{} };
+let firebaseReady = false;
+
+function saveState() {
+  set(stateRef, state);
+}
+function getItem(cat, id) {
+  return (state[cat] && state[cat][id]) || { found: false, donated: false };
+}
+function setFound(cat, id, val) {
+  if (!state[cat][id]) state[cat][id] = {};
+  state[cat][id].found = val;
+  if (!val) state[cat][id].donated = false;
+  saveState();
+}
+function setDonated(cat, id, val) {
+  if (!state[cat][id]) state[cat][id] = {};
+  state[cat][id].donated = val;
+  if (val) state[cat][id].found = true;
+  saveState();
+}
+
+/* ── Sync: listen for remote changes ─────────── */
+onValue(stateRef, (snapshot) => {
+  const data = snapshot.val();
+  state = {
+    bugs:    (data && data.bugs)    || {},
+    fish:    (data && data.fish)    || {},
+    fossils: (data && data.fossils) || {},
+  };
+  if (!firebaseReady) {
+    firebaseReady = true;
+    document.getElementById('loading-overlay').style.display = 'none';
+  }
+  renderBugs();
+  renderFish();
+  renderFossils();
+});
+
+/* ════════════════════════════════════════════════
+   DATE / TIME
+   ════════════════════════════════════════════════ */
+function getGameDateTime() {
+  const d = document.getElementById('gameDate').value;
+  const t = document.getElementById('gameTime').value;
+  const [y,mo,dy] = d.split('-').map(Number);
+  const [h,mi]    = t.split(':').map(Number);
+  return { month: mo - 1, hour: h, min: mi };
+}
+
+function isAvailableMonth(item) {
+  const { month } = getGameDateTime();
+  return !!item.months[month];
+}
+
+function isAvailableNow(item) {
+  const { month, hour } = getGameDateTime();
+  if (!item.months[month]) return false;
+  if (!item.time) return true; // all day
+  const [s, e] = item.time;
+  if (s < e) return hour >= s && hour < e;
+  return hour >= s || hour < e; // wraps midnight
+}
+
+function setNow() {
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  document.getElementById('gameDate').value =
+    `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+  document.getElementById('gameTime').value =
+    `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+}
+
+/* ════════════════════════════════════════════════
+   MONTHS DISPLAY
+   ════════════════════════════════════════════════ */
+function monthsHtml(months) {
+  return MONTHS.map((m,i) =>
+    months[i]
+      ? `<span class="month-on">${m}</span>`
+      : `<span style="opacity:0.3">${m}</span>`
+  ).join('');
+}
+
+/* ════════════════════════════════════════════════
+   DETAIL MODAL
+   ════════════════════════════════════════════════ */
+let detailCat = null, detailId = null;
+
+function showDetail(cat, id) {
+  detailCat = cat; detailId = id;
+  let item, content;
+  const s = getItem(cat, id);
+
+  if (cat === 'bugs') {
+    item = BUGS.find(b => b.id === id);
+    content = `
+      <div class="detail-grid">
+        <div class="detail-label">Sell price</div><div class="detail-val">${item.price.toLocaleString()} Bells</div>
+        <div class="detail-label">Location</div><div class="detail-val">${item.loc}</div>
+        <div class="detail-label">Rarity</div><div class="detail-val">${item.rarity}</div>
+        <div class="detail-label">Time</div><div class="detail-val">${item.timeStr}</div>
+        ${item.peak ? `<div class="detail-label">Peak</div><div class="detail-val">${item.peak}</div>` : ''}
+        <hr class="detail-divider">
+        <div class="detail-label">Months</div><div class="detail-val detail-months">${monthsHtml(item.months)}</div>
+      </div>`;
+  } else if (cat === 'fish') {
+    item = FISH.find(f => f.id === id);
+    content = `
+      <div class="detail-grid">
+        <div class="detail-label">Sell price</div><div class="detail-val">${item.price.toLocaleString()} Bells</div>
+        <div class="detail-label">Location</div><div class="detail-val">${item.loc}</div>
+        <div class="detail-label">Shadow</div><div class="detail-val">${item.shadow}</div>
+        <div class="detail-label">Fish size</div><div class="detail-val">${item.size}</div>
+        <div class="detail-label">Time</div><div class="detail-val">${item.timeStr}</div>
+        <hr class="detail-divider">
+        <div class="detail-label">Months</div><div class="detail-val detail-months">${monthsHtml(item.months)}</div>
+      </div>`;
+  } else {
+    item = FOSSILS.find(f => f.id === id);
+    content = `
+      <div class="detail-grid">
+        <div class="detail-label">Sell price</div><div class="detail-val">${item.price.toLocaleString()} Bells</div>
+        <div class="detail-label">Group</div><div class="detail-val">${item.group || 'Standalone'}</div>
+      </div>`;
+  }
+
+  document.getElementById('detail-title').textContent = item.name;
+  document.getElementById('detail-content').innerHTML = content;
+  document.getElementById('detail-found-cb').checked   = s.found;
+  document.getElementById('detail-donated-cb').checked = s.donated;
+  document.getElementById('detail-modal').classList.add('open');
+}
+
+document.getElementById('detail-close').addEventListener('click', () => {
+  document.getElementById('detail-modal').classList.remove('open');
+});
+document.getElementById('detail-modal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) e.currentTarget.classList.remove('open');
+});
+document.getElementById('detail-found-cb').addEventListener('change', e => {
+  setFound(detailCat, detailId, e.target.checked);
+  if (!e.target.checked) document.getElementById('detail-donated-cb').checked = false;
+  rerender();
+});
+document.getElementById('detail-donated-cb').addEventListener('change', e => {
+  setDonated(detailCat, detailId, e.target.checked);
+  if (e.target.checked) document.getElementById('detail-found-cb').checked = true;
+  rerender();
+});
+
+function rerender() {
+  renderBugs(); renderFish(); renderFossils();
+}
+
+/* ════════════════════════════════════════════════
+   BUGS RENDER
+   ════════════════════════════════════════════════ */
+function renderBugs() {
+  const tbody      = document.getElementById('bug-body');
+  const hideUnavail= document.getElementById('bug-hide-unavailable').checked;
+  const hideD      = document.getElementById('bug-hide-donated').checked;
+  let found = 0, donated = 0, visible = 0;
+
+  BUGS.forEach(b => {
+    const s = getItem('bugs', b.id);
+    if (s.found)   found++;
+    if (s.donated) donated++;
+  });
+
+  tbody.innerHTML = '';
+
+  BUGS.forEach(b => {
+    const s           = getItem('bugs', b.id);
+    const availMonth  = isAvailableMonth(b);
+    const availNow    = isAvailableNow(b);
+
+    if (hideUnavail && !availMonth) return;
+    if (hideD && s.donated) return;
+    visible++;
+
+    // availability indicator for "right month, wrong time"
+    let availTag = '';
+    let availClass = '';
+    if (!availMonth) {
+      availClass = ''; // dimmed via row class
+    } else if (availNow) {
+      availClass = 'avail-now';
+      availTag   = '<span class="avail-dot avail-dot-now" title="Catchable right now"></span>';
+    } else {
+      availClass = 'avail-month-only';
+      availTag   = '<span class="avail-tag avail-dot-clock" title="Available this month — check the time window">🕐</span>';
+    }
+
+    // rarity prefix (skip "Unknown" to reduce noise)
+    const rarityPrefix = b.rarity && b.rarity !== 'Unknown'
+      ? `<span class="rarity-prefix">${b.rarity}</span> — `
+      : '';
+
+    const tr = document.createElement('tr');
+    if (!availMonth) tr.classList.add('dimmed');
+    if (s.donated)   tr.classList.add('donated-row');
+
+    tr.innerHTML = `
+      <td style="color:var(--text-muted);font-size:11px">${b.id}</td>
+      <td class="name-cell" data-id="${b.id}">${b.name}</td>
+      <td class="center">
+        <div class="cb-wrap">
+          <input type="checkbox" ${s.found ? 'checked' : ''} data-id="${b.id}" data-type="found">
+        </div>
+      </td>
+      <td class="center">
+        <div class="cb-wrap">
+          <input type="checkbox" class="donated-cb" ${s.donated ? 'checked' : ''} data-id="${b.id}" data-type="donated">
+        </div>
+      </td>
+      <td class="avail-cell ${availClass}">${availTag}${rarityPrefix}${b.loc}</td>
+      <td class="months-cell">${monthsHtml(b.months)}</td>
+      <td class="price-cell">${b.price.toLocaleString()} 🔔</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // progress bars
+  const total = BUGS.length;
+  document.getElementById('bug-found-bar').style.width    = (found/total*100)+'%';
+  document.getElementById('bug-donated-bar').style.width  = (donated/total*100)+'%';
+  document.getElementById('bug-found-count').textContent  = `${found}/${total}`;
+  document.getElementById('bug-donated-count').textContent= `${donated}/${total}`;
+  document.getElementById('bug-visible-count').textContent= `${visible} showing`;
+
+  updateMuseumStat();
+
+  // events
+  tbody.querySelectorAll('input[type=checkbox]').forEach(cb => {
+    cb.addEventListener('change', e => {
+      const id   = +e.target.dataset.id;
+      const type = e.target.dataset.type;
+      if (type === 'found')   setFound('bugs', id, e.target.checked);
+      else                    setDonated('bugs', id, e.target.checked);
+      renderBugs();
+    });
+  });
+  tbody.querySelectorAll('.name-cell').forEach(cell => {
+    cell.addEventListener('click', () => showDetail('bugs', +cell.dataset.id));
+  });
+}
+
+/* ════════════════════════════════════════════════
+   FISH RENDER
+   ════════════════════════════════════════════════ */
+function renderFish() {
+  const tbody       = document.getElementById('fish-body');
+  const hideUnavail = document.getElementById('fish-hide-unavailable').checked;
+  const hideD       = document.getElementById('fish-hide-donated').checked;
+  let found = 0, donated = 0, visible = 0;
+
+  FISH.forEach(f => {
+    const s = getItem('fish', f.id);
+    if (s.found)   found++;
+    if (s.donated) donated++;
+  });
+
+  tbody.innerHTML = '';
+
+  FISH.forEach(f => {
+    const s          = getItem('fish', f.id);
+    const availMonth = isAvailableMonth(f);
+    const availNow   = isAvailableNow(f);
+
+    if (hideUnavail && !availMonth) return;
+    if (hideD && s.donated) return;
+    visible++;
+
+    let availTag = '', availClass = '';
+    if (!availMonth) {
+      availClass = '';
+    } else if (availNow) {
+      availClass = 'avail-now';
+      availTag   = '<span class="avail-dot avail-dot-now" title="Catchable right now"></span>';
+    } else {
+      availClass = 'avail-month-only';
+      availTag   = '<span class="avail-tag avail-dot-clock" title="Available this month — check the time window">🕐</span>';
+    }
+
+    const shadowPrefix = `<span class="rarity-prefix">${f.shadow}</span> — `;
+
+    const tr = document.createElement('tr');
+    if (!availMonth) tr.classList.add('dimmed');
+    if (s.donated)   tr.classList.add('donated-row');
+
+    tr.innerHTML = `
+      <td style="color:var(--text-muted);font-size:11px">${f.id}</td>
+      <td class="name-cell" data-id="${f.id}">${f.name}</td>
+      <td class="center"><div class="cb-wrap"><input type="checkbox" ${s.found ? 'checked':''} data-id="${f.id}" data-type="found"></div></td>
+      <td class="center"><div class="cb-wrap"><input type="checkbox" class="donated-cb" ${s.donated ? 'checked':''} data-id="${f.id}" data-type="donated"></div></td>
+      <td class="avail-cell ${availClass}">${availTag}${shadowPrefix}${f.loc}</td>
+      <td class="months-cell">${monthsHtml(f.months)}</td>
+      <td class="price-cell">${f.price.toLocaleString()} 🔔</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('fish-found-bar').style.width     = (found/56*100)+'%';
+  document.getElementById('fish-donated-bar').style.width   = (donated/56*100)+'%';
+  document.getElementById('fish-found-count').textContent   = `${found}/56`;
+  document.getElementById('fish-donated-count').textContent = `${donated}/56`;
+  document.getElementById('fish-visible-count').textContent = `${visible} showing`;
+  updateMuseumStat();
+
+  tbody.querySelectorAll('input[type=checkbox]').forEach(cb => {
+    cb.addEventListener('change', e => {
+      const id = +e.target.dataset.id, type = e.target.dataset.type;
+      if (type === 'found') setFound('fish', id, e.target.checked);
+      else                  setDonated('fish', id, e.target.checked);
+      renderFish();
+    });
+  });
+  tbody.querySelectorAll('.name-cell').forEach(cell => {
+    cell.addEventListener('click', () => showDetail('fish', +cell.dataset.id));
+  });
+}
+
+/* ════════════════════════════════════════════════
+   FOSSILS RENDER
+   ════════════════════════════════════════════════ */
+function renderFossils() {
+  const tbody  = document.getElementById('fossil-body');
+  const hideD  = document.getElementById('fossil-hide-donated').checked;
+  let found = 0, donated = 0, visible = 0;
+
+  FOSSILS.forEach(f => {
+    const s = getItem('fossils', f.id);
+    if (s.found)   found++;
+    if (s.donated) donated++;
+  });
+
+  tbody.innerHTML = '';
+
+  // Build group order: Standalone first, then sets in data order
+  const groups = [];
+  const seen = new Set();
+  FOSSILS.forEach(f => {
+    const g = f.group || '__standalone__';
+    if (!seen.has(g)) { seen.add(g); groups.push(g); }
+  });
+
+  groups.forEach(g => {
+    const items   = FOSSILS.filter(f => (f.group || '__standalone__') === g);
+    const gDonated= items.filter(f => getItem('fossils', f.id).donated).length;
+    const gFound  = items.filter(f => getItem('fossils', f.id).found).length;
+    const label   = g === '__standalone__' ? 'Standalone Fossils' : g;
+    const complete = gDonated === items.length;
+
+    // Group header row
+    const headerTr = document.createElement('tr');
+    headerTr.innerHTML = `
+      <td colspan="4" style="padding:0">
+        <div class="fossil-group-header">
+          <span>${label}</span>
+          <span class="fossil-set-badge ${complete ? 'complete' : ''}">${gDonated}/${items.length} donated</span>
+        </div>
+      </td>`;
+    tbody.appendChild(headerTr);
+
+    items.forEach(f => {
+      const s = getItem('fossils', f.id);
+      if (hideD && s.donated) return;
+      visible++;
+      const tr = document.createElement('tr');
+      if (s.donated) tr.classList.add('donated-row');
+      tr.innerHTML = `
+        <td class="name-cell" data-id="${f.id}" style="padding-left:14px">${f.name}</td>
+        <td class="center"><div class="cb-wrap"><input type="checkbox" ${s.found?'checked':''} data-id="${f.id}" data-type="found"></div></td>
+        <td class="center"><div class="cb-wrap"><input type="checkbox" class="donated-cb" ${s.donated?'checked':''} data-id="${f.id}" data-type="donated"></div></td>
+        <td class="price-cell">${f.price.toLocaleString()} 🔔</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  });
+
+  document.getElementById('fossil-found-bar').style.width     = (found/52*100)+'%';
+  document.getElementById('fossil-donated-bar').style.width   = (donated/52*100)+'%';
+  document.getElementById('fossil-found-count').textContent   = `${found}/52`;
+  document.getElementById('fossil-donated-count').textContent = `${donated}/52`;
+  document.getElementById('fossil-visible-count').textContent = `${visible} showing`;
+  updateMuseumStat();
+
+  tbody.querySelectorAll('input[type=checkbox]').forEach(cb => {
+    cb.addEventListener('change', e => {
+      const id = +e.target.dataset.id, type = e.target.dataset.type;
+      if (type === 'found') setFound('fossils', id, e.target.checked);
+      else                  setDonated('fossils', id, e.target.checked);
+      renderFossils();
+    });
+  });
+  tbody.querySelectorAll('.name-cell').forEach(cell => {
+    cell.addEventListener('click', () => showDetail('fossils', +cell.dataset.id));
+  });
+}
+
+/* ════════════════════════════════════════════════
+   MUSEUM STAT (header)
+   ════════════════════════════════════════════════ */
+function updateMuseumStat() {
+  let donated = 0;
+  [...BUGS,...FISH,...FOSSILS].forEach(item => {
+    const cat = BUGS.includes(item) ? 'bugs' : FISH.includes(item) ? 'fish' : 'fossils';
+    if (getItem(cat, item.id).donated) donated++;
+  });
+  document.getElementById('museumStat').textContent = `Museum: ${donated}/164`;
+}
+
+/* ════════════════════════════════════════════════
+   TABS
+   ════════════════════════════════════════════════ */
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+/* ════════════════════════════════════════════════
+   FILTERS & DATE
+   ════════════════════════════════════════════════ */
+document.getElementById('bug-hide-unavailable').addEventListener('change', renderBugs);
+document.getElementById('bug-hide-donated').addEventListener('change', renderBugs);
+document.getElementById('fish-hide-unavailable').addEventListener('change', renderFish);
+document.getElementById('fish-hide-donated').addEventListener('change', renderFish);
+document.getElementById('fossil-hide-donated').addEventListener('change', renderFossils);
+document.getElementById('gameDate').addEventListener('change', () => { renderBugs(); renderFish(); });
+document.getElementById('gameTime').addEventListener('change', () => { renderBugs(); renderFish(); });
+document.getElementById('nowBtn').addEventListener('click', () => { setNow(); renderBugs(); renderFish(); });
+
+/* ════════════════════════════════════════════════
+   INIT
+   ════════════════════════════════════════════════ */
+setNow();
+// renders are triggered by onValue once Firebase connects
+</script>
+</body>
+</html>
