@@ -458,6 +458,7 @@ thead th.sort-active { background: var(--tan-dark); color: var(--green-dark); }
 
 <script type="module">
 import { initializeApp }                    from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+import { getAuth, signInAnonymously }       from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
 import { getDatabase, ref, set, onValue }   from "https://www.gstatic.com/firebasejs/12.13.0/firebase-database.js";
 
 /* ── Firebase config ──────────────────────────── */
@@ -470,8 +471,9 @@ const firebaseConfig = {
   messagingSenderId: "474904002607",
   appId:             "1:474904002607:web:302ddbdec39d25a9ba06da"
 };
-const fbApp = initializeApp(firebaseConfig);
-const db    = getDatabase(fbApp);
+const fbApp    = initializeApp(firebaseConfig);
+const auth     = getAuth(fbApp);
+const db       = getDatabase(fbApp);
 const stateRef = ref(db, 'state');
 
 /* ════════════════════════════════════════════════
@@ -753,20 +755,22 @@ function setDonated(cat, id, val) {
 }
 
 /* ── Sync: listen for remote changes ─────────── */
-onValue(stateRef, (snapshot) => {
-  const data = snapshot.val();
-  state = {
-    bugs:    (data && data.bugs)    || {},
-    fish:    (data && data.fish)    || {},
-    fossils: (data && data.fossils) || {},
-  };
-  if (!firebaseReady) {
-    firebaseReady = true;
-    document.getElementById('loading-overlay').style.display = 'none';
-  }
-  renderBugs();
-  renderFish();
-  renderFossils();
+signInAnonymously(auth).then(() => {
+  onValue(stateRef, (snapshot) => {
+    const data = snapshot.val();
+    state = {
+      bugs:    (data && data.bugs)    || {},
+      fish:    (data && data.fish)    || {},
+      fossils: (data && data.fossils) || {},
+    };
+    if (!firebaseReady) {
+      firebaseReady = true;
+      document.getElementById('loading-overlay').style.display = 'none';
+    }
+    renderBugs();
+    renderFish();
+    renderFossils();
+  });
 });
 
 /* ════════════════════════════════════════════════
