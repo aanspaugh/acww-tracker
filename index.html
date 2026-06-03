@@ -773,7 +773,7 @@ signInBtn.addEventListener('click', () => {
   signInBtn.style.display = 'none';
   signInWithPopup(auth, provider).catch((err) => {
     console.error('Google sign-in failed:', err);
-    overlayMsg.textContent = 'Sign-in failed: ' + (err && (err.code || err.message) || 'unknown error');
+    overlayMsg.textContent = 'Sign-in failed. Please try again.';
     signInBtn.style.display = 'inline-flex';
   });
 });
