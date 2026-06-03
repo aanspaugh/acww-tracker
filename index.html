@@ -466,7 +466,7 @@ thead th.sort-active { background: var(--tan-dark); color: var(--green-dark); }
 
 <script type="module">
 import { initializeApp }                    from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
 import { getDatabase, ref, set, onValue }   from "https://www.gstatic.com/firebasejs/12.13.0/firebase-database.js";
 
 /* ── Firebase config ──────────────────────────── */
@@ -764,9 +764,11 @@ function setDonated(cat, id, val) {
 
 /* ── Auth (Google) + sync: listen for remote changes ─────────── */
 const provider   = new GoogleAuthProvider();
+provider.setCustomParameters({ prompt: 'select_account' });
 const overlayMsg = document.getElementById('overlayMsg');
 const signInBtn  = document.getElementById('signInBtn');
 let   listenerAttached = false;
+let   accessDenied     = false;
 
 signInBtn.addEventListener('click', () => {
   overlayMsg.textContent = 'Signing in…';
@@ -780,7 +782,9 @@ signInBtn.addEventListener('click', () => {
 
 onAuthStateChanged(auth, (user) => {
   if (!user) {
-    overlayMsg.textContent = 'Sign in to load your collection';
+    overlayMsg.textContent = accessDenied
+      ? 'That account can’t access this tracker. Sign in with the owner Google account.'
+      : 'Sign in to load your collection';
     signInBtn.style.display = 'inline-flex';
     return;
   }
@@ -804,7 +808,8 @@ onAuthStateChanged(auth, (user) => {
     renderFish();
     renderFossils();
   }, () => {
-    overlayMsg.textContent = 'This account doesn’t have access.';
+    accessDenied = true;
+    signOut(auth);   // wrong account — clear it so onAuthStateChanged shows the sign-in button again
   });
 });
 
